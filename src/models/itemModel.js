@@ -1,3 +1,5 @@
+import { conn } from "../config/db.js";
+
 let items = [
     {
         id: 1,
@@ -10,35 +12,34 @@ let items = [
 ];
 let id = 3;
 
-export const getAllItems = () => items;
+export const getAllItems = async () => {
+    const [rows] = await conn.query('SELECT * FROM items');
+    console.log(rows);
+    return rows;
+};
 
-export const getItemById = (itemId) => items.find(i => i.id === parseInt(itemId));
+export const getItemById = async (itemId) => {
+    const [rows] = await conn.query('select * from items where id = ?', [itemId]);
+    return rows;
+}
 
-export const createItem = (name) => {
-    const newItem = { id: id++, name };
-    items.push(newItem);
+export const createItem = async (name) => {
+    const [result] = await conn.query('insert into items (name) values (?)', [name]);
+    const newItem = { id: result.insertId, name };
     return newItem;
 };
 
-export const updateItem = (itemId, name) => {
-    // console.log(" inside itemModel update item")
-    // console.log(parseInt(itemId), name)
-    // console.log("items list : ", items)
-    const item = items.find(i => i.id == parseInt(itemId));
-    // console.log("item : ", item)
-    if(item){
-        item.name = name;
-        return item;
+export const updateItem = async (itemId, name) => {
+    const [result] = await conn.query('update items set name = ? where id = ?', [name, itemId]);
+
+    if (result.affectedRows === 0){
+        return null
     }
-    return null;
+    const updatedItem = await getItemById(itemId);
+    return updatedItem;
 };
 
-export const deleteItem = (itemId) => {
-    const index = items.findIndex(i => i.id === parseInt(itemId));
-    if (index !== -1){
-        items.splice(index, 1);
-        id--;
-        return true;
-    }
-    return false;
+export const deleteItem = async (itemId) => {
+    const [result] = await conn.query('delete from items where id = ?', [itemId]);
+    return result.affectedRows > 0;
 }
